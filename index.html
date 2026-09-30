@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POISUTE 2 - INFO MONITOR</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #050505;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* スキャンラインエフェクト */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* 給料（料金）表示 */
+        #money-display {
+            font-size: 6vw; 
+            font-weight: bold;
+            color: #0f0; 
+            background: rgba(0, 50, 0, 0.6);
+            border: 4px solid #0f0;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #0f0;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+            letter-spacing: 5px;
+        }
+
+        /* 縦2分割の枠コンテナ */
+        #mission-container {
+            display: flex;
+            flex-direction: row; 
+            gap: 20px; 
+            flex: 1; 
+            overflow: hidden;
+        }
+
+        /* それぞれの枠 */
+        .mission-column {
+            flex: 1; 
+            background: rgba(0, 20, 50, 0.6);
+            border: 2px solid #0af;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.2);
+            overflow-y: auto; 
+        }
+
+        .mission-title {
+            background: rgba(0, 170, 255, 0.4);
+            color: #fff;
+            padding: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 2px solid #0af;
+            letter-spacing: 3px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .mission-content {
+            padding: 20px;
+            font-size: 20px;
+            line-height: 1.6;
+        }
+
+        /* リストの見た目 */
+        .mission-item {
+            margin-bottom: 15px;
+            border-bottom: 1px dashed rgba(0, 170, 255, 0.4);
+            padding-bottom: 10px;
+            transition: all 0.3s;
+        }
+        .mission-item::before {
+            content: "▶ ";
+            color: #0af;
+        }
+        
+        /* クリア済みの見た目 */
+        .cleared {
+            color: #555;
+            text-decoration: line-through;
+        }
+        .cleared::before {
+            content: "✔ ";
+            color: #555;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 16px;
+            color: #888;
+            z-index: 101;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="money-display">SALARY: ¥0</div>
+    
+    <div id="mission-container">
+        <div class="mission-column">
+            <div class="mission-title">MISSION LIST</div>
+            <div class="mission-content" id="list-mission"></div>
+        </div>
+        <div class="mission-column">
+            <div class="mission-title">HINT / LOG</div>
+            <div class="mission-content" id="list-hint"></div>
+        </div>
+    </div>
+
+    <div id="status">SYS: STANDBY...</div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwL6vY1pA1vqbrq4bCLIVLdWGtKoXztcbxsi812AkzILF3eo54oJnh-fw2MCFttjUoh/exec";
+        
+        let isFetching = false;
+        let lastDataString = ""; 
+
+        async function fetchData() {
+            if (isFetching) return; 
+            isFetching = true;
+
+            try {
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+                const currentDataString = JSON.stringify(data);
+                
+                if (lastDataString !== currentDataString) {
+                    updateUI(data);
+                    lastDataString = currentDataString;
+                }
+                document.getElementById('status').innerText = "SYS: ONLINE 🟢";
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = "SYS: ERROR 🔴";
+            } finally {
+                isFetching = false;
+                setTimeout(fetchData, 2000); 
+            }
+        }
+
+        function updateUI(data) {
+            document.getElementById('money-display').innerText = `SALARY: ¥${data.totalMoney}`;
+
+            const listMission = document.getElementById('list-mission');
+            const listHint = document.getElementById('list-hint');
+            listMission.innerHTML = "";
+            listHint.innerHTML = "";
+
+            data.missions.forEach(m => {
+                if (m.visible) {
+                    const div = document.createElement('div');
+                    div.className = "mission-item" + (m.cleared ? " cleared" : "");
+                    div.innerText = m.name;
+                    
+                    // 名前に「ヒント」または「HINT」が含まれていれば右側の枠、それ以外は左側の枠へ
+                    if (m.name.includes('ヒント') || m.name.includes('HINT')) {
+                        listHint.appendChild(div);
+                    } else {
+                        listMission.appendChild(div);
+                    }
+                }
+            });
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
