@@ -28,7 +28,6 @@
             background: #ffebee; color: #b71c1c; border-color: #b71c1c; box-shadow: 0 6px 0 #7f0000;
         }
 
-        /* ▼ 追加：解いた数のデザイン（ポップな緑色） */
         #score-display { 
             flex: 1; font-size: 3.5vw; font-weight: bold; color: #fff; 
             background: #4caf50; border-radius: 15px;
@@ -36,7 +35,6 @@
             box-shadow: 0 6px 0 #388e3c; letter-spacing: 2px; margin: 0; display: flex; align-items: center; justify-content: center;
         }
 
-        /* 給料の文字サイズをスコア枠と揃えるために少し調整 */
         #money-display { 
             flex: 1; font-size: 3.5vw; font-weight: bold; color: #fff; 
             background: #ff9800; border-radius: 15px;
@@ -59,8 +57,16 @@
             transition: all 0.3s; font-weight: bold;
         }
         .mission-item::before { content: "⭐ "; color: #ffa000; }
-        .cleared { background: #eeeeee; border-color: #cccccc; color: #999; text-decoration: line-through; }
+        
+        /* ▼ 変更：指定色があってもクリア時は強制的にグレーになるように「!important」を追加 */
+        .cleared { 
+            background: #eeeeee !important; 
+            border-color: #cccccc !important; 
+            color: #999 !important; 
+            text-decoration: line-through !important; 
+        }
         .cleared::before { content: "✅ "; }
+        
         .hint-item { background: #fff9c4; border: 2px solid #fff59d; color: #e65100; }
         .hint-item::before { content: "💡 "; }
         #footer-info { position: absolute; bottom: 10px; right: 20px; font-size: 18px; color: #666; z-index: 101; font-weight: bold; }
@@ -73,7 +79,6 @@
             <div class="timer-time" id="timer-text">00:00</div>
             <div class="timer-help">Space: 一時停止 / R: リセット</div>
         </div>
-        <!-- ここにスコア表示を追加しました -->
         <div id="score-display">SOLVED: 0問</div>
         <div id="money-display">SALARY: ¥0</div>
     </div>
@@ -170,7 +175,6 @@
             } catch (error) {
                 document.getElementById('status').innerText = "SYS: ERROR 🔴";
             } finally {
-                isFetching = false;
                 setTimeout(fetchData, 1000); 
             }
         }
@@ -183,7 +187,6 @@
         function updateUI() {
             if (!latestData) return;
             
-            // ▼ 給料と解いた数のテキストを更新
             document.getElementById('money-display').innerText = `SALARY: ¥${latestData.totalMoney}`;
             document.getElementById('score-display').innerText = `SOLVED: ${latestData.totalQuestions}問`;
 
@@ -196,13 +199,22 @@
             const effectiveNow = currentSimulatedNow - tPauseTotal; 
 
             latestData.missions.forEach(m => {
+                // ▼ 左側のミッションリスト表示
                 if (m.visible && m.name) {
                     const div = document.createElement('div');
                     div.className = "mission-item" + (m.cleared ? " cleared" : "");
                     div.innerText = m.name;
+                    
+                    // 追加：ミッション側の背景色もP列の指定色にする
+                    if (m.hintColor && m.hintColor.trim() !== "") {
+                        div.style.backgroundColor = m.hintColor;
+                        div.style.borderColor = m.hintColor;
+                    }
+                    
                     listMission.appendChild(div);
                 }
                 
+                // ▼ 右側のヒント表示
                 if (!m.cleared && m.startTimeMs > 0) {
                     const hintElapsedMs = effectiveNow - m.startTimeMs; 
                     const hintElapsedMinutes = Math.floor(hintElapsedMs / 60000); 
@@ -212,6 +224,13 @@
                             const hintDiv = document.createElement('div');
                             hintDiv.className = "mission-item hint-item"; 
                             hintDiv.innerText = hint.text;
+                            
+                            // スプレッドシート（P列）で色が指定されていたら適用
+                            if (m.hintColor && m.hintColor.trim() !== "") {
+                                hintDiv.style.backgroundColor = m.hintColor;
+                                hintDiv.style.borderColor = m.hintColor;
+                            }
+                            
                             listHint.appendChild(hintDiv);
                         }
                     });
