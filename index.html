@@ -12,55 +12,67 @@
             font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', Meiryo, sans-serif;
             box-sizing: border-box; height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
         }
-        #money-display { 
-            font-size: 5vw; font-weight: bold; color: #fff; 
-            background: #ff9800; 
-            border-radius: 15px;
-            padding: 15px; text-align: center; margin-bottom: 20px; 
-            box-shadow: 0 6px 0 #f57c00; 
-            letter-spacing: 2px; 
+        
+        /* ▼ ヘッダー部分（タイマーと給料を横並びに） ▼ */
+        .header-container {
+            display: flex; justify-content: space-between; align-items: stretch; gap: 20px; margin-bottom: 20px;
         }
+
+        /* ▼ 左上のタイマー ▼ */
+        #global-timer {
+            flex: 0 0 auto;
+            background: #fff; border: 4px solid #ff5252; border-radius: 15px;
+            padding: 10px 25px; font-size: 32px; font-weight: bold; color: #ff5252;
+            box-shadow: 0 6px 0 #d32f2f; display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .timer-time { font-size: 40px; letter-spacing: 2px; }
+        .timer-help { font-size: 14px; color: #888; font-weight: normal; margin-top: 5px; }
+        
+        /* 一時停止中のタイマーデザイン */
+        #global-timer.paused {
+            background: #ffebee; color: #b71c1c; border-color: #b71c1c; box-shadow: 0 6px 0 #7f0000;
+        }
+
+        #money-display { 
+            flex: 1; font-size: 5vw; font-weight: bold; color: #fff; 
+            background: #ff9800; border-radius: 15px;
+            padding: 15px; text-align: center; 
+            box-shadow: 0 6px 0 #f57c00; letter-spacing: 2px; margin: 0; display: flex; align-items: center; justify-content: center;
+        }
+        
         #mission-container { display: flex; flex-direction: row; gap: 20px; flex: 1; overflow: hidden; }
         .mission-column { 
-            flex: 1; background: #fff; 
-            border: 4px solid #4fc3f7; 
-            border-radius: 15px;
-            display: flex; flex-direction: column; 
-            box-shadow: 0 6px 0 #0288d1; 
-            overflow-y: auto; 
+            flex: 1; background: #fff; border: 4px solid #4fc3f7; border-radius: 15px;
+            display: flex; flex-direction: column; box-shadow: 0 6px 0 #0288d1; overflow-y: auto; 
         }
         .mission-title { 
-            background: #4fc3f7; color: #fff; 
-            padding: 15px; font-size: 24px; font-weight: bold; text-align: center; 
+            background: #4fc3f7; color: #fff; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; 
             letter-spacing: 2px; position: sticky; top: 0; z-index: 10; 
         }
         .mission-content { padding: 20px; font-size: 20px; line-height: 1.6; }
         .mission-item { 
-            background: #f1f8e9; 
-            margin-bottom: 15px; border-radius: 10px;
-            padding: 15px; 
-            border: 2px solid #c5e1a5;
-            transition: all 0.3s; 
-            font-weight: bold;
+            background: #f1f8e9; margin-bottom: 15px; border-radius: 10px; padding: 15px; border: 2px solid #c5e1a5;
+            transition: all 0.3s; font-weight: bold;
         }
         .mission-item::before { content: "⭐ "; color: #ffa000; }
-        .cleared { 
-            background: #eeeeee; border-color: #cccccc; color: #999;
-            text-decoration: line-through; 
-        }
+        .cleared { background: #eeeeee; border-color: #cccccc; color: #999; text-decoration: line-through; }
         .cleared::before { content: "✅ "; }
-        .hint-item {
-            background: #fff9c4; 
-            border: 2px solid #fff59d;
-            color: #e65100;
-        }
+        .hint-item { background: #fff9c4; border: 2px solid #fff59d; color: #e65100; }
         .hint-item::before { content: "💡 "; }
+        
         #footer-info { position: absolute; bottom: 10px; right: 20px; font-size: 18px; color: #666; z-index: 101; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="money-display">SALARY: ¥0</div>
+    <div class="header-container">
+        <div id="global-timer">
+            <div class="timer-time" id="timer-text">00:00</div>
+            <div class="timer-help">Space: 一時停止 / R: リセット</div>
+        </div>
+        <div id="money-display">SALARY: ¥0</div>
+    </div>
     
     <div id="mission-container">
         <div class="mission-column">
@@ -80,29 +92,92 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwL6vY1pA1vqbrq4bCLIVLdWGtKoXztcbxsi812AkzILF3eo54oJnh-fw2MCFttjUoh/exec";
         
+        // --- タイマーと一時停止の管理 ---
+        let tState = localStorage.getItem('tState') || 'running';
+        let tStart = parseInt(localStorage.getItem('tStart')) || Date.now();
+        let tPauseTotal = parseInt(localStorage.getItem('tPauseTotal')) || 0;
+        let tPauseBegin = parseInt(localStorage.getItem('tPauseBegin')) || 0;
+
+        function saveTimer() {
+            localStorage.setItem('tState', tState);
+            localStorage.setItem('tStart', tStart);
+            localStorage.setItem('tPauseTotal', tPauseTotal);
+            localStorage.setItem('tPauseBegin', tPauseBegin);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            // Spaceキーで一時停止 / 再開
+            if (e.code === 'Space') {
+                e.preventDefault(); // 画面のスクロールを防ぐ
+                if (tState === 'running') {
+                    tState = 'paused';
+                    tPauseBegin = Date.now();
+                } else {
+                    tState = 'running';
+                    tPauseTotal += (Date.now() - tPauseBegin); // 停止していた時間を加算
+                }
+                saveTimer();
+            } 
+            // Rキーでリセット
+            else if (e.key === 'r' || e.key === 'R') {
+                tState = 'running';
+                tStart = Date.now();
+                tPauseTotal = 0;
+                tPauseBegin = 0;
+                saveTimer();
+            }
+            updateTimerUI();
+        });
+
+        // 経過時間（ミリ秒）を取得する関数
+        function getElapsedMs() {
+            if (tState === 'paused') {
+                return tPauseBegin - tStart - tPauseTotal;
+            } else {
+                return Date.now() - tStart - tPauseTotal;
+            }
+        }
+
+        function updateTimerUI() {
+            const elapsed = getElapsedMs();
+            const totalSec = Math.max(0, Math.floor(elapsed / 1000));
+            const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
+            const sec = String(totalSec % 60).padStart(2, '0');
+            
+            const timerBox = document.getElementById('global-timer');
+            const timerText = document.getElementById('timer-text');
+            
+            if (tState === 'paused') {
+                timerText.innerText = `PAUSE ${min}:${sec}`;
+                timerBox.classList.add('paused');
+            } else {
+                timerText.innerText = `${min}:${sec}`;
+                timerBox.classList.remove('paused');
+            }
+        }
+
         let isFetching = false;
-        let latestData = null; // スプレッドシートから取得した最新データを保持
+        let latestData = null; 
 
         async function fetchData() {
             if (isFetching) return; 
             isFetching = true;
-
             try {
                 const response = await fetch(GAS_URL);
                 latestData = await response.json();
-                updateUI(); // データ取得直後にUIを更新
+                updateUI();
                 document.getElementById('status').innerText = "SYS: ONLINE 🟢";
             } catch (error) {
-                console.error(error);
                 document.getElementById('status').innerText = "SYS: ERROR 🔴";
             } finally {
                 isFetching = false;
-                setTimeout(fetchData, 2000); // 2秒おきに最新データを取りに行く
+                setTimeout(fetchData, 2000); 
             }
         }
 
-        // 1秒ごとに画面を再描画し、ヒントの時間が来たらすぐ表示する
+        // 1秒ごとにタイマーと画面を更新
         setInterval(() => {
+            updateTimerUI();
             if (latestData) updateUI();
         }, 1000);
 
@@ -110,16 +185,16 @@
             if (!latestData) return;
             
             document.getElementById('money-display').innerText = `SALARY: ¥${latestData.totalMoney}`;
-
             const listMission = document.getElementById('list-mission');
             const listHint = document.getElementById('list-hint');
             listMission.innerHTML = "";
             listHint.innerHTML = "";
 
-            const now = Date.now(); // 今の時刻
+            // 一時停止中の時間を考慮した「現在時刻」を割り出す
+            const currentSimulatedNow = tState === 'paused' ? tPauseBegin : Date.now();
+            const effectiveNow = currentSimulatedNow - tPauseTotal; 
 
             latestData.missions.forEach(m => {
-                // 左枠：ミッション（E列のサイト表示にチェックがあるもの）
                 if (m.visible && m.name) {
                     const div = document.createElement('div');
                     div.className = "mission-item" + (m.cleared ? " cleared" : "");
@@ -127,13 +202,12 @@
                     listMission.appendChild(div);
                 }
                 
-                // 右枠：ヒント
-                // J列に時刻が記録されていて（m.startTimeMs > 0）、かつH列の時間を超えたら表示
+                // ヒント出現の判定（ゲーム一時停止中はヒントの進行もストップします）
                 if (m.hintText && m.startTimeMs > 0 && Number(m.hintTime) > 0) {
-                    const elapsedMs = now - m.startTimeMs; // チェックを入れてからの経過ミリ秒
-                    const elapsedMinutes = Math.floor(elapsedMs / 60000); // 経過分数に変換
+                    const hintElapsedMs = effectiveNow - m.startTimeMs; 
+                    const hintElapsedMinutes = Math.floor(hintElapsedMs / 60000); 
                     
-                    if (elapsedMinutes >= Number(m.hintTime)) {
+                    if (hintElapsedMinutes >= Number(m.hintTime)) {
                         const hintDiv = document.createElement('div');
                         hintDiv.className = "mission-item hint-item"; 
                         hintDiv.innerText = m.hintText;
@@ -144,6 +218,7 @@
         }
 
         fetchData();
+        updateTimerUI();
     </script>
 </body>
 </html>
