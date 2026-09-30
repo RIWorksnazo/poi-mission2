@@ -29,17 +29,17 @@
         }
 
         #score-display { 
-            flex: 1; font-size: 3.5vw; font-weight: bold; color: #fff; 
+            flex: 1; font-size: 2.8vw; font-weight: bold; color: #fff; 
             background: #4caf50; border-radius: 15px;
             padding: 15px; text-align: center; 
-            box-shadow: 0 6px 0 #388e3c; letter-spacing: 2px; margin: 0; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 0 #388e3c; letter-spacing: 1px; margin: 0; display: flex; align-items: center; justify-content: center;
         }
 
         #money-display { 
-            flex: 1; font-size: 3.5vw; font-weight: bold; color: #fff; 
+            flex: 1; font-size: 2.8vw; font-weight: bold; color: #fff; 
             background: #ff9800; border-radius: 15px;
             padding: 15px; text-align: center; 
-            box-shadow: 0 6px 0 #f57c00; letter-spacing: 2px; margin: 0; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 0 #f57c00; letter-spacing: 1px; margin: 0; display: flex; align-items: center; justify-content: center;
         }
 
         #mission-container { display: flex; flex-direction: row; gap: 20px; flex: 1; overflow: hidden; }
@@ -78,7 +78,7 @@
             <div class="timer-time" id="timer-text">00:00</div>
             <div class="timer-help"></div>
         </div>
-        <div id="score-display">解いた問題数: 0問</div>
+        <div id="score-display">現在解いた問題数: 0問</div>
         <div id="money-display">現在の給料: ¥0</div>
     </div>
     
@@ -160,82 +160,75 @@
             }
         }
 
-        let isFetching = false;
-        let latestData = null; 
-
-        async function fetchData() {
-            if (isFetching) return; 
-            isFetching = true;
+        // データを取得して画面を更新する関数
+        async function fetchAndUpdate() {
             try {
-                const response = await fetch(GAS_URL);
-                latestData = await response.json();
-                updateUI();
+                // キャッシュを完全に回避するため "?t=現在時刻" をつけてリクエストする
+                const response = await fetch(GAS_URL + "?t=" + Date.now(), { cache: 'no-store' });
+                const data = await response.json();
+                
+                // 画面の数値を更新
+                document.getElementById('money-display').innerText = `現在の給料: ¥${data.totalMoney.toLocaleString()}`;
+                document.getElementById('score-display').innerText = `現在解いた問題数: ${data.totalQuestions}問`;
+
+                const listMission = document.getElementById('list-mission');
+                const listHint = document.getElementById('list-hint');
+                listMission.innerHTML = "";
+                listHint.innerHTML = "";
+
+                const currentSimulatedNow = tState === 'paused' ? tPauseBegin : Date.now();
+                const effectiveNow = currentSimulatedNow - tPauseTotal; 
+
+                data.missions.forEach(m => {
+                    if (m.visible && m.name) {
+                        const div = document.createElement('div');
+                        div.className = "mission-item" + (m.cleared ? " cleared" : "");
+                        div.innerText = m.name;
+                        
+                        if (m.hintColor && m.hintColor.trim() !== "") {
+                            div.style.backgroundColor = m.hintColor;
+                            div.style.borderColor = m.hintColor;
+                        }
+                        
+                        listMission.appendChild(div);
+                    }
+                    
+                    if (!m.cleared && m.startTimeMs > 0) {
+                        const hintElapsedMs = effectiveNow - m.startTimeMs; 
+                        const hintElapsedMinutes = Math.floor(hintElapsedMs / 60000); 
+                        
+                        m.hints.forEach(hint => {
+                            if (hint.text && hint.time > 0 && hintElapsedMinutes >= hint.time) {
+                                const hintDiv = document.createElement('div');
+                                hintDiv.className = "mission-item hint-item"; 
+                                hintDiv.innerText = hint.text;
+                                
+                                if (m.hintColor && m.hintColor.trim() !== "") {
+                                    hintDiv.style.backgroundColor = m.hintColor;
+                                    hintDiv.style.borderColor = m.hintColor;
+                                }
+                                
+                                listHint.appendChild(hintDiv);
+                            }
+                        });
+                    }
+                });
+
                 document.getElementById('status').innerText = "SYS: ONLINE 🟢";
             } catch (error) {
+                console.error(error);
                 document.getElementById('status').innerText = "SYS: ERROR 🔴";
-            } finally {
-                setTimeout(fetchData, 1000); 
             }
         }
 
+        // 初回実行
+        fetchAndUpdate();
+
+        // 1秒ごとに自動でサーバー（スプレッドシート）に見に行って画面を更新する
         setInterval(() => {
             updateTimerUI();
-            if (latestData) updateUI();
+            fetchAndUpdate();
         }, 1000);
-
-        function updateUI() {
-            if (!latestData) return;
-            
-            // ▼ ここを完全に日本語表記に修正しました
-            document.getElementById('money-display').innerText = `現在の給料: ¥${latestData.totalMoney}`;
-            document.getElementById('score-display').innerText = `現在解いた問題数: ${latestData.totalQuestions}問`;
-
-            const listMission = document.getElementById('list-mission');
-            const listHint = document.getElementById('list-hint');
-            listMission.innerHTML = "";
-            listHint.innerHTML = "";
-
-            const currentSimulatedNow = tState === 'paused' ? tPauseBegin : Date.now();
-            const effectiveNow = currentSimulatedNow - tPauseTotal; 
-
-            latestData.missions.forEach(m => {
-                if (m.visible && m.name) {
-                    const div = document.createElement('div');
-                    div.className = "mission-item" + (m.cleared ? " cleared" : "");
-                    div.innerText = m.name;
-                    
-                    if (m.hintColor && m.hintColor.trim() !== "") {
-                        div.style.backgroundColor = m.hintColor;
-                        div.style.borderColor = m.hintColor;
-                    }
-                    
-                    listMission.appendChild(div);
-                }
-                
-                if (!m.cleared && m.startTimeMs > 0) {
-                    const hintElapsedMs = effectiveNow - m.startTimeMs; 
-                    const hintElapsedMinutes = Math.floor(hintElapsedMs / 60000); 
-                    
-                    m.hints.forEach(hint => {
-                        if (hint.text && hint.time > 0 && hintElapsedMinutes >= hint.time) {
-                            const hintDiv = document.createElement('div');
-                            hintDiv.className = "mission-item hint-item"; 
-                            hintDiv.innerText = hint.text;
-                            
-                            if (m.hintColor && m.hintColor.trim() !== "") {
-                                hintDiv.style.backgroundColor = m.hintColor;
-                                hintDiv.style.borderColor = m.hintColor;
-                            }
-                            
-                            listHint.appendChild(hintDiv);
-                        }
-                    });
-                }
-            });
-        }
-
-        fetchData();
-        updateTimerUI();
     </script>
 </body>
 </html>
