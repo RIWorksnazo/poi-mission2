@@ -1,244 +1,245 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POISUTE 2 - INFO MONITOR</title>
-    <style>
-        body { 
-            margin: 0; padding: 20px; 
-            background-color: #fdf6e3; 
-            color: #333; 
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', Meiryo, sans-serif;
-            box-sizing: border-box; height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
-        }
-        .header-container {
-            display: flex; justify-content: space-between; align-items: stretch; gap: 20px; margin-bottom: 20px;
-        }
-        #global-timer {
-            flex: 0 0 auto;
-            background: #fff; border: 4px solid #ff5252; border-radius: 15px;
-            padding: 10px 25px; font-size: 32px; font-weight: bold; color: #ff5252;
-            box-shadow: 0 6px 0 #d32f2f; display: flex; align-items: center; justify-content: center;
-            flex-direction: column;
-        }
-        .timer-time { font-size: 40px; letter-spacing: 2px; }
-        .timer-help { font-size: 14px; color: #888; font-weight: normal; margin-top: 5px; }
-        #global-timer.paused {
-            background: #ffebee; color: #b71c1c; border-color: #b71c1c; box-shadow: 0 6px 0 #7f0000;
-        }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POISUTE 2 - INFO MONITOR</title>
+    <style>
+        body { 
+            margin: 0; padding: 20px; 
+            background-color: #fdf6e3; 
+            color: #333; 
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', Meiryo, sans-serif;
+            box-sizing: border-box; height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
+        }
+        .header-container {
+            display: flex; justify-content: space-between; align-items: stretch; gap: 20px; margin-bottom: 20px;
+        }
+        #global-timer {
+            flex: 0 0 auto;
+            background: #fff; border: 4px solid #ff5252; border-radius: 15px;
+            padding: 10px 25px; font-size: 32px; font-weight: bold; color: #ff5252;
+            box-shadow: 0 6px 0 #d32f2f; display: flex; align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .timer-time { font-size: 40px; letter-spacing: 2px; }
+        .timer-help { font-size: 14px; color: #888; font-weight: normal; margin-top: 5px; }
+        #global-timer.paused {
+            background: #ffebee; color: #b71c1c; border-color: #b71c1c; box-shadow: 0 6px 0 #7f0000;
+        }
 
-        #score-display { 
-            flex: 1; font-size: 2.5vw; font-weight: bold; color: #fff; 
-            background: #4caf50; border-radius: 15px;
-            padding: 15px; text-align: center; 
-            box-shadow: 0 6px 0 #388e3c; letter-spacing: 1px; margin: 0; display: flex; align-items: center; justify-content: center;
-        }
+        #score-display { 
+            flex: 1; font-size: 3.5vw; font-weight: bold; color: #fff; 
+            background: #4caf50; border-radius: 15px;
+            padding: 15px; text-align: center; 
+            box-shadow: 0 6px 0 #388e3c; letter-spacing: 2px; margin: 0; display: flex; align-items: center; justify-content: center;
+        }
 
-        #money-display { 
-            flex: 1; font-size: 2.5vw; font-weight: bold; color: #fff; 
-            background: #ff9800; border-radius: 15px;
-            padding: 15px; text-align: center; 
-            box-shadow: 0 6px 0 #f57c00; letter-spacing: 1px; margin: 0; display: flex; align-items: center; justify-content: center;
-        }
+        #money-display { 
+            flex: 1; font-size: 3.5vw; font-weight: bold; color: #fff; 
+            background: #ff9800; border-radius: 15px;
+            padding: 15px; text-align: center; 
+            box-shadow: 0 6px 0 #f57c00; letter-spacing: 2px; margin: 0; display: flex; align-items: center; justify-content: center;
+        }
 
-        #mission-container { display: flex; flex-direction: row; gap: 20px; flex: 1; overflow: hidden; }
-        .mission-column { 
-            flex: 1; background: #fff; border: 4px solid #4fc3f7; border-radius: 15px;
-            display: flex; flex-direction: column; box-shadow: 0 6px 0 #0288d1; overflow-y: auto; 
-        }
-        .mission-title { 
-            background: #4fc3f7; color: #fff; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; 
-            letter-spacing: 2px; position: sticky; top: 0; z-index: 10; 
-        }
-        .mission-content { padding: 20px; font-size: 20px; line-height: 1.6; }
-        .mission-item { 
-            background: #f1f8e9; margin-bottom: 15px; border-radius: 10px; padding: 15px; border: 2px solid #c5e1a5;
-            transition: all 0.3s; font-weight: bold;
-        }
-        .mission-item::before { content: "⭐ "; color: #ffa000; }
-        
-        .cleared { 
-            background: #eeeeee !important; 
-            border-color: #cccccc !important; 
-            color: #999 !important; 
-            text-decoration: line-through !important; 
-        }
-        .cleared::before { content: "✅ "; }
-        
-        .hint-item { background: #fff9c4; border: 2px solid #fff59d; color: #e65100; }
-        .hint-item::before { content: "💡 "; }
-        #footer-info { position: absolute; bottom: 10px; right: 20px; font-size: 18px; color: #666; z-index: 101; font-weight: bold; }
-    </style>
+        #mission-container { display: flex; flex-direction: row; gap: 20px; flex: 1; overflow: hidden; }
+        .mission-column { 
+            flex: 1; background: #fff; border: 4px solid #4fc3f7; border-radius: 15px;
+            display: flex; flex-direction: column; box-shadow: 0 6px 0 #0288d1; overflow-y: auto; 
+        }
+        .mission-title { 
+            background: #4fc3f7; color: #fff; padding: 15px; font-size: 24px; font-weight: bold; text-align: center; 
+            letter-spacing: 2px; position: sticky; top: 0; z-index: 10; 
+        }
+        .mission-content { padding: 20px; font-size: 20px; line-height: 1.6; }
+        .mission-item { 
+            background: #f1f8e9; margin-bottom: 15px; border-radius: 10px; padding: 15px; border: 2px solid #c5e1a5;
+            transition: all 0.3s; font-weight: bold;
+        }
+        .mission-item::before { content: "⭐ "; color: #ffa000; }
+        
+        /* ▼ 変更：指定色があってもクリア時は強制的にグレーになるように「!important」を追加 */
+        .cleared { 
+            background: #eeeeee !important; 
+            border-color: #cccccc !important; 
+            color: #999 !important; 
+            text-decoration: line-through !important; 
+        }
+        .cleared::before { content: "✅ "; }
+        
+        .hint-item { background: #fff9c4; border: 2px solid #fff59d; color: #e65100; }
+        .hint-item::before { content: "💡 "; }
+        #footer-info { position: absolute; bottom: 10px; right: 20px; font-size: 18px; color: #666; z-index: 101; font-weight: bold; }
+    </style>
 </head>
 <body>
 
-    <div class="header-container">
-        <div id="global-timer">
-            <div class="timer-time" id="timer-text">00:00</div>
-            <div class="timer-help"></div>
-        </div>
-        <!-- 変更箇所1：現在解いた問題数 -->
-        <div id="score-display">現在解いた問題数: 0問</div>
-        <!-- 変更箇所2：現在の給料 -->
-        <div id="money-display">現在の給料: ¥0</div>
-    </div>
-    
-    <div id="mission-container">
-        <div class="mission-column">
-            <!-- 変更箇所3：現在挑戦中のMISSION（スペルミス修正） -->
-            <div class="mission-title">現在挑戦中のMISSION</div>
-            <div class="mission-content" id="list-mission"></div>
-        </div>
-        <div class="mission-column">
-            <div class="mission-title">HINT / LOG</div>
-            <div class="mission-content" id="list-hint"></div>
-        </div>
-    </div>
+    <div class="header-container">
+        <div id="global-timer">
+            <div class="timer-time" id="timer-text">00:00</div>
+            <div class="timer-help"></div>
+        </div>
+        <div id="score-display">捨てた問題数: 0問</div>
+        <div id="money-display">現在の給料: ¥0</div>
+    </div>
+    
+    <div id="mission-container">
+        <div class="mission-column">
+            <div class="mission-title">現在挑戦中のMISSON</div>
+            <div class="mission-content" id="list-mission"></div>
+        </div>
+        <div class="mission-column">
+            <div class="mission-title">HINT / LOG</div>
+            <div class="mission-content" id="list-hint"></div>
+        </div>
+    </div>
 
-    <div id="footer-info">
-        <div id="status">SYS: STANDBY...</div>
-    </div>
+    <div id="footer-info">
+        <div id="status">SYS: STANDBY...</div>
+    </div>
 
-    <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbwL6vY1pA1vqbrq4bCLIVLdWGtKoXztcbxsi812AkzILF3eo54oJnh-fw2MCFttjUoh/exec";
-        
-        let tState = localStorage.getItem('tState') || 'running';
-        let tStart = parseInt(localStorage.getItem('tStart')) || Date.now();
-        let tPauseTotal = parseInt(localStorage.getItem('tPauseTotal')) || 0;
-        let tPauseBegin = parseInt(localStorage.getItem('tPauseBegin')) || 0;
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbwL6vY1pA1vqbrq4bCLIVLdWGtKoXztcbxsi812AkzILF3eo54oJnh-fw2MCFttjUoh/exec";
+        
+        let tState = localStorage.getItem('tState') || 'running';
+        let tStart = parseInt(localStorage.getItem('tStart')) || Date.now();
+        let tPauseTotal = parseInt(localStorage.getItem('tPauseTotal')) || 0;
+        let tPauseBegin = parseInt(localStorage.getItem('tPauseBegin')) || 0;
 
-        function saveTimer() {
-            localStorage.setItem('tState', tState);
-            localStorage.setItem('tStart', tStart);
-            localStorage.setItem('tPauseTotal', tPauseTotal);
-            localStorage.setItem('tPauseBegin', tPauseBegin);
-        }
+        function saveTimer() {
+            localStorage.setItem('tState', tState);
+            localStorage.setItem('tStart', tStart);
+            localStorage.setItem('tPauseTotal', tPauseTotal);
+            localStorage.setItem('tPauseBegin', tPauseBegin);
+        }
 
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                e.preventDefault(); 
-                if (tState === 'running') {
-                    tState = 'paused';
-                    tPauseBegin = Date.now();
-                } else {
-                    tState = 'running';
-                    tPauseTotal += (Date.now() - tPauseBegin); 
-                }
-                saveTimer();
-            } 
-            else if (e.key === 'r' || e.key === 'R') {
-                tState = 'running';
-                tStart = Date.now();
-                tPauseTotal = 0;
-                tPauseBegin = 0;
-                saveTimer();
-            }
-            updateTimerUI();
-        });
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); 
+                if (tState === 'running') {
+                    tState = 'paused';
+                    tPauseBegin = Date.now();
+                } else {
+                    tState = 'running';
+                    tPauseTotal += (Date.now() - tPauseBegin); 
+                }
+                saveTimer();
+            } 
+            else if (e.key === 'r' || e.key === 'R') {
+                tState = 'running';
+                tStart = Date.now();
+                tPauseTotal = 0;
+                tPauseBegin = 0;
+                saveTimer();
+            }
+            updateTimerUI();
+        });
 
-        function getElapsedMs() {
-            if (tState === 'paused') {
-                return tPauseBegin - tStart - tPauseTotal;
-            } else {
-                return Date.now() - tStart - tPauseTotal;
-            }
-        }
+        function getElapsedMs() {
+            if (tState === 'paused') {
+                return tPauseBegin - tStart - tPauseTotal;
+            } else {
+                return Date.now() - tStart - tPauseTotal;
+            }
+        }
 
-        function updateTimerUI() {
-            const elapsed = getElapsedMs();
-            const totalSec = Math.max(0, Math.floor(elapsed / 1000));
-            const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
-            const sec = String(totalSec % 60).padStart(2, '0');
-            
-            const timerBox = document.getElementById('global-timer');
-            const timerText = document.getElementById('timer-text');
-            
-            if (tState === 'paused') {
-                timerText.innerText = `PAUSE ${min}:${sec}`;
-                timerBox.classList.add('paused');
-            } else {
-                timerText.innerText = `${min}:${sec}`;
-                timerBox.classList.remove('paused');
-            }
-        }
+        function updateTimerUI() {
+            const elapsed = getElapsedMs();
+            const totalSec = Math.max(0, Math.floor(elapsed / 1000));
+            const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
+            const sec = String(totalSec % 60).padStart(2, '0');
+            
+            const timerBox = document.getElementById('global-timer');
+            const timerText = document.getElementById('timer-text');
+            
+            if (tState === 'paused') {
+                timerText.innerText = `PAUSE ${min}:${sec}`;
+                timerBox.classList.add('paused');
+            } else {
+                timerText.innerText = `${min}:${sec}`;
+                timerBox.classList.remove('paused');
+            }
+        }
 
-        let isFetching = false;
-        let latestData = null; 
+        let isFetching = false;
+        let latestData = null; 
 
-        async function fetchData() {
-            if (isFetching) return; 
-            isFetching = true;
-            try {
-                const response = await fetch(GAS_URL);
-                latestData = await response.json();
-                updateUI();
-                document.getElementById('status').innerText = "SYS: ONLINE 🟢";
-            } catch (error) {
-                document.getElementById('status').innerText = "SYS: ERROR 🔴";
-            } finally {
-                setTimeout(fetchData, 1000); 
-            }
-        }
+        async function fetchData() {
+            if (isFetching) return; 
+            isFetching = true;
+            try {
+                const response = await fetch(GAS_URL);
+                latestData = await response.json();
+                updateUI();
+                document.getElementById('status').innerText = "SYS: ONLINE 🟢";
+            } catch (error) {
+                document.getElementById('status').innerText = "SYS: ERROR 🔴";
+            } finally {
+                setTimeout(fetchData, 1000); 
+            }
+        }
 
-        setInterval(() => {
-            updateTimerUI();
-            if (latestData) updateUI();
-        }, 1000);
+        setInterval(() => {
+            updateTimerUI();
+            if (latestData) updateUI();
+        }, 1000);
 
-        function updateUI() {
-            if (!latestData) return;
-            
-            // 変更内容を反映
-            document.getElementById('money-display').innerText = `現在の給料: ¥${latestData.totalMoney}`;
-            document.getElementById('score-display').innerText = `現在解いた問題数: ${latestData.totalQuestions}問`;
+        function updateUI() {
+            if (!latestData) return;
+            
+            document.getElementById('money-display').innerText = `SALARY: ¥${latestData.totalMoney}`;
+            document.getElementById('score-display').innerText = `SOLVED: ${latestData.totalQuestions}問`;
 
-            const listMission = document.getElementById('list-mission');
-            const listHint = document.getElementById('list-hint');
-            listMission.innerHTML = "";
-            listHint.innerHTML = "";
+            const listMission = document.getElementById('list-mission');
+            const listHint = document.getElementById('list-hint');
+            listMission.innerHTML = "";
+            listHint.innerHTML = "";
 
-            const currentSimulatedNow = tState === 'paused' ? tPauseBegin : Date.now();
-            const effectiveNow = currentSimulatedNow - tPauseTotal; 
+            const currentSimulatedNow = tState === 'paused' ? tPauseBegin : Date.now();
+            const effectiveNow = currentSimulatedNow - tPauseTotal; 
 
-            latestData.missions.forEach(m => {
-                if (m.visible && m.name) {
-                    const div = document.createElement('div');
-                    div.className = "mission-item" + (m.cleared ? " cleared" : "");
-                    div.innerText = m.name;
-                    
-                    if (m.hintColor && m.hintColor.trim() !== "") {
-                        div.style.backgroundColor = m.hintColor;
-                        div.style.borderColor = m.hintColor;
-                    }
-                    
-                    listMission.appendChild(div);
-                }
-                
-                if (!m.cleared && m.startTimeMs > 0) {
-                    const hintElapsedMs = effectiveNow - m.startTimeMs; 
-                    const hintElapsedMinutes = Math.floor(hintElapsedMs / 60000); 
-                    
-                    m.hints.forEach(hint => {
-                        if (hint.text && hint.time > 0 && hintElapsedMinutes >= hint.time) {
-                            const hintDiv = document.createElement('div');
-                            hintDiv.className = "mission-item hint-item"; 
-                            hintDiv.innerText = hint.text;
-                            
-                            if (m.hintColor && m.hintColor.trim() !== "") {
-                                hintDiv.style.backgroundColor = m.hintColor;
-                                hintDiv.style.borderColor = m.hintColor;
-                            }
-                            
-                            listHint.appendChild(hintDiv);
-                        }
-                    });
-                }
-            });
-        }
+            latestData.missions.forEach(m => {
+                // ▼ 左側のミッションリスト表示
+                if (m.visible && m.name) {
+                    const div = document.createElement('div');
+                    div.className = "mission-item" + (m.cleared ? " cleared" : "");
+                    div.innerText = m.name;
+                    
+                    // 追加：ミッション側の背景色もP列の指定色にする
+                    if (m.hintColor && m.hintColor.trim() !== "") {
+                        div.style.backgroundColor = m.hintColor;
+                        div.style.borderColor = m.hintColor;
+                    }
+                    
+                    listMission.appendChild(div);
+                }
+                
+                // ▼ 右側のヒント表示
+                if (!m.cleared && m.startTimeMs > 0) {
+                    const hintElapsedMs = effectiveNow - m.startTimeMs; 
+                    const hintElapsedMinutes = Math.floor(hintElapsedMs / 60000); 
+                    
+                    m.hints.forEach(hint => {
+                        if (hint.text && hint.time > 0 && hintElapsedMinutes >= hint.time) {
+                            const hintDiv = document.createElement('div');
+                            hintDiv.className = "mission-item hint-item"; 
+                            hintDiv.innerText = hint.text;
+                            
+                            // スプレッドシート（P列）で色が指定されていたら適用
+                            if (m.hintColor && m.hintColor.trim() !== "") {
+                                hintDiv.style.backgroundColor = m.hintColor;
+                                hintDiv.style.borderColor = m.hintColor;
+                            }
+                            
+                            listHint.appendChild(hintDiv);
+                        }
+                    });
+                }
+            });
+        }
 
-        fetchData();
-        updateTimerUI();
-    </script>
+        fetchData();
+        updateTimerUI();
+    </script>
 </body>
 </html>
