@@ -131,6 +131,9 @@
                 tPauseBegin = 0;
                 saveTimer();
             }
+            else if (e.key === 'Enter') {
+                location.reload(); // エンターキーでシンプルに画面をリロード
+            }
             updateTimerUI();
         });
 
